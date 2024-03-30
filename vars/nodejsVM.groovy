@@ -12,7 +12,8 @@ def call(Map configMap){
         }
         environment { 
             packageVersion = ''
-            nexusURL = '172.31.88.3:8081'
+            // can maintain in pipelineGlobals.groovy
+            // nexusURL = '172.31.88.3:8081'
         }
         parameters {
             booleanParam(name: 'Deploy', defaultValue: false, description: 'Toggle this value')
@@ -53,7 +54,7 @@ def call(Map configMap){
                 steps {
                     sh """
                         ls -la
-                        zip -q -r catalogue.zip ./* -x ".git" -x "*.zip"
+                        zip -q -r ${configMap.component}.zip ./* -x ".git" -x "*.zip"
                         ls -ltr
                     """
                 }
@@ -63,15 +64,15 @@ def call(Map configMap){
                     nexusArtifactUploader(
                         nexusVersion: 'nexus3',
                         protocol: 'http',
-                        nexusUrl: "${nexusURL}",
+                        nexusUrl: pipelineGlobals.nexusURL(),
                         groupId: 'com.roboshop',
                         version: "${packageVersion}",
-                        repository: 'catalogue',
+                        repository: "${configMap.component}",
                         credentialsId: 'nexus_auth',
                         artifacts: [
-                            [artifactId: 'catalogue',
+                            [artifactId: "${configMap.component}",
                             classifier: '',
-                            file: 'catalogue.zip',
+                            file: "${configMap.component}.zip",
                             type: 'zip']
                         ]
                     )
@@ -80,7 +81,7 @@ def call(Map configMap){
             stage ('Invoke_pipeline') {
                 when {
                     expression {
-                        params.Deploy == "true"
+                        params.Deploy
                     }
                 }
                 steps {
